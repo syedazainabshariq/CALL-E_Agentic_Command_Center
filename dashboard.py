@@ -1,10 +1,16 @@
 import os
-from dotenv import load_dotenv
 import streamlit as st
 from calle import CalleClient
 
-# Load environment variables
-load_dotenv()
+# Load environment variables locally if python-dotenv is available and .env exists
+try:
+  from dotenv import load_dotenv
+
+  load_dotenv()
+except ImportError:
+  pass
+
+# Initialize client using environment configuration
 client = CalleClient(api_key=os.environ.get("CALLE_API_KEY"))
 
 # Page Config
