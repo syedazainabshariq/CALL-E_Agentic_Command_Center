@@ -44,21 +44,32 @@ if dispatch_button:
     elif not phone_number or not task_prompt:
         st.warning("Please provide both a target phone number and an agent task prompt.")
     else:
-      with st.spinner("Planning and executing autonomous voice agent task via CALL-E..."):
+      with st.spinner("Dispatching live autonomous voice agent call via CALL-E..."):
         try:
-          st.session_state.last_response = {
-              "status": "completed",
-              "task_completed": True,
-              "duration": "24",
-              "phone_number": phone_number,
-              "goal": task_prompt,
-              "transcript": [
-                  {"speaker": "Agent", "text": f"Hello. Calling regarding: {task_prompt}"},
-                  {"speaker": "Recipient", "text": "Hi, yes, I am available. Thank you for checking in."},
-                  {"speaker": "Agent", "text": "Wonderful. Everything is confirmed. Have a great day."}
-              ]
+          url = "https://api.calle.ai/v1/calls"
+          headers = {
+              "Authorization": f"Bearer {API_KEY}",
+              "Content-Type": "application/json",
           }
-          st.success("Agent execution payload processed successfully.")
+          payload = {
+              "phone_number": phone_number,
+              "prompt": task_prompt
+          }
+          response = requests.post(url, json=payload, headers=headers)
+          
+          if response.status_code == 200:
+              st.session_state.last_response = response.json()
+              st.success("Live call dispatched successfully.")
+          else:
+              # Fallback to handle error details or test status gracefully if endpoint differs
+              st.session_state.last_response = {
+                  "status": "error",
+                  "status_code": response.status_code,
+                  "message": response.text,
+                  "phone_number": phone_number,
+                  "goal": task_prompt
+              }
+              st.warning(f"Received response status {response.status_code}. Check payload inspector for details.")
         except Exception as e:
           st.error(f"Connection error: {e}")
 
@@ -70,15 +81,15 @@ with tab1:
     with col1:
       st.metric(
           label="Execution Status",
-          value=res.get("status", "Completed").capitalize(),
+          value=str(res.get("status", "Completed")).capitalize(),
       )
     with col2:
       st.metric(
           label="Task Completed",
-          value=str(res.get("task_completed", True)),
+          value=str(res.get("task_completed", False)),
       )
     with col3:
-      st.metric(label="Duration", value=f"{res.get('duration', '12')}s")
+      st.metric(label="Duration", value=f"{res.get('duration', '0')}s")
   else:
     st.info(
         "No active execution recorded yet. Configure parameters and dispatch"
@@ -89,11 +100,14 @@ with tab2:
   st.subheader("Call Dialogue Transcript")
   if st.session_state.last_response:
     transcript = st.session_state.last_response.get("transcript", [])
-    for turn in transcript:
-      speaker_label = (
-          "**Agent**" if turn.get("speaker") == "Agent" else "**Recipient**"
-      )
-      st.markdown(f"{speaker_label}: {turn.get('text')}")
+    if transcript:
+      for turn in transcript:
+        speaker_label = (
+            "**Agent**" if turn.get("speaker") == "Agent" else "**Recipient**"
+        )
+        st.markdown(f"{speaker_label}: {turn.get('text')}")
+    else:
+      st.info("No transcript dialogue returned in the live payload yet.")
   else:
     st.write("Transcript logs will appear here post-call execution.")
 
