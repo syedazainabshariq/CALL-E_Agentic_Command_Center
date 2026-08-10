@@ -46,15 +46,15 @@ if dispatch_button:
     else:
       with st.spinner("Dispatching live autonomous voice agent call via CALL-E SDK..."):
         try:
-          client = CalleClient(apiKey=API_KEY)
+          # Corrected parameter name to api_key
+          client = CalleClient(api_key=API_KEY)
           formatted_task = f"Call {phone_number} and execute goal: {task_prompt}"
           
-          # Use official SDK method
-          call_result = client.calls.createAndWait(task=formatted_task)
+          call_result = client.calls.create_and_wait(task=formatted_task)
           
           st.session_state.last_response = {
               "status": getattr(call_result, "status", "completed"),
-              "task_completed": getattr(call_result, "taskCompleted", True),
+              "task_completed": getattr(call_result, "task_completed", True),
               "duration": getattr(call_result, "duration", "24"),
               "phone_number": phone_number,
               "goal": task_prompt,
